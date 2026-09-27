@@ -1,0 +1,31 @@
+diff --git a/quantum/vial.c b/quantum/vial.c
+index cc36fccb..ebcb6567 100644
+--- a/quantum/vial.c
++++ b/quantum/vial.c
+@@ -355,10 +355,14 @@ void vial_keycode_up(uint16_t keycode) {
+     }
+ }
+-
++
++__attribute__((weak)) uint16_t vial_tap_dance_effective_delay_kb(uint16_t configured_delay) {
++    return configured_delay;
++}
++
+ void vial_keycode_tap(uint16_t keycode) {
+     vial_keycode_down(keycode);
+-    qs_wait_ms(QS_tap_code_delay);
++    qs_wait_ms(vial_tap_dance_effective_delay_kb(QS_tap_code_delay));
+     vial_keycode_up(keycode);
+ }
+-
++
+ #ifdef VIAL_TAP_DANCE_ENABLE
+@@ -478,7 +482,7 @@ static void on_dance_reset(tap_dance_state_t *state, void *user_data) {
+     uint8_t index = (uintptr_t)user_data;
+     if (dynamic_keymap_get_tap_dance(index, &td_entry) != 0)
+         return;
+-    qs_wait_ms(QS_tap_code_delay);
++    qs_wait_ms(vial_tap_dance_effective_delay_kb(QS_tap_code_delay));
+     uint8_t st = dance_state[index];
+     state->count = 0;
+     dance_state[index] = 0;

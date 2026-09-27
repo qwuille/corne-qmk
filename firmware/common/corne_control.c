@@ -160,6 +160,13 @@ bool vial_tap_dance_reliable_interrupt_kb(void) {
     return reliable_tap_dance_interrupt;
 }
 
+uint16_t vial_tap_dance_effective_delay_kb(uint16_t configured_delay) {
+    if (reliable_tap_dance_interrupt && configured_delay < TAP_CODE_DELAY) {
+        return TAP_CODE_DELAY;
+    }
+    return configured_delay;
+}
+
 static void corne_rgb_slave_handler(uint8_t in_buflen, const void *in_data, uint8_t out_buflen, void *out_data) {
     (void)out_buflen;
     (void)out_data;

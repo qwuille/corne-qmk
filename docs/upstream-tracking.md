@@ -29,7 +29,8 @@ the following are true:
    updated to a fixed Vial-QMK submodule.
 3. `vial-tap-dance-reliable-interrupt.patch`, its build-script application, the
    Corne Control hook, and the temporary WebHID option are removed together.
-4. All three firmware targets build and pass their persistent-storage guards.
+4. Upstream preserves a nonzero delay between synthetic Tap Dance press and release reports, or provides equivalent host-visible ordering guarantees.
+5. All three firmware targets build and pass their persistent-storage guards.
 5. Physical XTIPS testing passes rapid rolled typing for `A` and `O`, repeated
    `average orange` text, tap-Space, Space-held-as-Shift, double tap, tap-hold,
    and use of Tap Dance keys from both halves.

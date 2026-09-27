@@ -14,6 +14,7 @@ $distRoot = Join-Path $projectRoot 'dist'
 $lock = Get-Content -LiteralPath (Join-Path $projectRoot 'upstream.lock.json') -Raw | ConvertFrom-Json
 $vialPatch = Join-Path $projectRoot 'patches\vialrgb-policy-and-split-sync.patch'
 $tapDancePatch = Join-Path $projectRoot 'patches\vial-tap-dance-reliable-interrupt.patch'
+$tapDanceDelayPatch = Join-Path $projectRoot 'patches\vial-tap-dance-minimum-delay.patch'
 $stableBuildIdPatch = Join-Path $projectRoot 'patches\vial-stable-build-id.patch'
 $commonRoot = Join-Path $projectRoot 'firmware\common'
 . (Join-Path $PSScriptRoot 'firmware-storage.ps1')
@@ -72,6 +73,15 @@ function Apply-TapDancePatch {
     if ($LASTEXITCODE -ne 0) { throw "The reliable Tap Dance patch does not apply cleanly to $QmkRoot" }
     git -c "safe.directory=$($QmkRoot -replace '\\','/')" -C $QmkRoot apply $tapDancePatch
     if ($LASTEXITCODE -ne 0) { throw "Failed to apply the reliable Tap Dance patch to $QmkRoot" }
+}
+
+function Apply-TapDanceDelayPatch {
+    param([string] $QmkRoot)
+    if (Select-String -LiteralPath (Join-Path $QmkRoot 'quantum\vial.c') -Pattern 'vial_tap_dance_effective_delay_kb' -Quiet) { return }
+    git -c "safe.directory=$($QmkRoot -replace '\\','/')" -C $QmkRoot apply --check $tapDanceDelayPatch
+    if ($LASTEXITCODE -ne 0) { throw "The Tap Dance minimum-delay patch does not apply cleanly to $QmkRoot" }
+    git -c "safe.directory=$($QmkRoot -replace '\\','/')" -C $QmkRoot apply $tapDanceDelayPatch
+    if ($LASTEXITCODE -ne 0) { throw "Failed to apply the Tap Dance minimum-delay patch to $QmkRoot" }
 }
 
 function Apply-StableBuildIdPatch {
@@ -133,6 +143,7 @@ function Build-Xtips {
     Assert-PinnedRepository -Path $sourceRoot -Expected $lock.xtipsQmkKeyboard.commit
     Apply-VialPatch -QmkRoot $qmkRoot
     Apply-TapDancePatch -QmkRoot $qmkRoot
+    Apply-TapDanceDelayPatch -QmkRoot $qmkRoot
     Apply-StableBuildIdPatch -QmkRoot $qmkRoot
 
     $keyboardDestination = Join-Path $qmkRoot 'keyboards\xtips\v4s'
@@ -156,6 +167,7 @@ function Build-Rp2040Corne {
     Assert-PinnedRepository -Path $qmkRoot -Expected $lock.foostanKeyboardFirmware.vialQmkCommit
     Apply-VialPatch -QmkRoot $qmkRoot
     Apply-TapDancePatch -QmkRoot $qmkRoot
+    Apply-TapDanceDelayPatch -QmkRoot $qmkRoot
     Apply-StableBuildIdPatch -QmkRoot $qmkRoot
 
     $keyboardDestination = Join-Path $qmkRoot 'keyboards\tmp\crkbd'
