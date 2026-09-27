@@ -14,8 +14,8 @@ patches/
   vialrgb-policy-and-split-sync.patch
   vial-tap-dance-reliable-interrupt.patch
 webhid/
-  index.html
-  flasher.html
+  index.html              settings and integrated firmware flasher
+  flasher.html            compatibility redirect to index.html#firmware
   firmware/               packaged, hash-verified release artifacts
   PROTOCOL.md
 ```

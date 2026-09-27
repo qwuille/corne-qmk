@@ -183,20 +183,21 @@ cp -- "$firmware" "$rp_mount/"
 The drive disappears when the RP2040 accepts the UF2 and reboots. Disconnect
 the half and repeat the same procedure for the other isolated half.
 
-## Optional browser flasher
+## Integrated browser flasher
 
-The same files can be flashed from `webhid/flasher.html` in current Chrome or
-Edge. Use the hosted GitHub Pages version, or serve the directory locally:
+The same files can be flashed from the **Firmware update** section of
+`webhid/index.html` in current Chrome or Edge. Use the hosted GitHub Pages
+version, or serve the directory locally:
 
 ```text
-https://qwuille.github.io/corne-qmk/flasher.html
+https://qwuille.github.io/corne-qmk/#firmware
 ```
 
 ```powershell
 python -m http.server 8000 --directory webhid
 ```
 
-Then open `http://localhost:8000/flasher.html`. The browser verifies the
+Then open `http://localhost:8000/#firmware`. The browser verifies the
 selected firmware before writing it. If WebUSB or folder access is unavailable,
 use the command-line instructions above.
 

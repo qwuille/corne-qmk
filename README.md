@@ -1,6 +1,6 @@
 # Corne Control firmware
 
-Vial firmware, OpenRGB support, an initial web flasher, and a board-aware WebHID control deck for three 3x6 Corne-family keyboards:
+Vial firmware, OpenRGB support, an integrated web flasher, and a board-aware WebHID control deck for three 3x6 Corne-family keyboards:
 
 - **XTIPS V4s / PCB `V4A-R2.1`** with Geehy APM32F103C8T6 and one RGB LED beneath each of `F` and `J`.
 - **SZRKBD Corne-compatible v4.1** with RP2040 and 46 per-key RGB LEDs, provisionally based on foostan's `crkbd/rev4_1/standard` definition.
@@ -59,7 +59,7 @@ Serve `webhid/` from localhost or HTTPS and open it in Chrome or Edge. For examp
 python -m http.server 8000 --directory webhid
 ```
 
-Then open `http://localhost:8000`. Use **Initial flash** before the control deck when the keyboard still runs factory firmware. The page accepts only the Vial Raw HID collection for these USB identities:
+Then open `http://localhost:8000`. Use the integrated **Firmware update** section before connecting settings when the keyboard still runs factory firmware. The settings controls accept only the Vial Raw HID collection for these USB identities:
 
 | Board | VID:PID | OpenRGB pixels |
 | --- | --- | --- |
