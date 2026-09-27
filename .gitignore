@@ -1,0 +1,33 @@
+# Private local working memory
+.codex/
+/backups/
+
+# QMK/Vial build output
+.build/
+/dist/
+*.bin
+*.elf
+*.hex
+*.map
+*.uf2
+!/webhid/firmware/*.bin
+!/webhid/firmware/*.uf2
+
+# Local tooling
+.venv/
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/
+*.code-workspace
+*.log
+*.tmp
+*.temp
+*~
+*.swp
+.DS_Store
+Thumbs.db
+Desktop.ini

@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+// Copyright (C) 2026 Qwuille
+
+#pragma once
+
+// Preserve the Vial identity published with foostan's Corne v4.1 firmware.
+#define VIAL_KEYBOARD_UID {0x89, 0x36, 0x2A, 0xC7, 0xFA, 0xD8, 0x89, 0x45}
+#define VIAL_UNLOCK_COMBO_ROWS {0, 0}
+#define VIAL_UNLOCK_COMBO_COLS {0, 1}
+#define VIAL_TAP_DANCE_ENTRIES 16
+
+#define SPLIT_TRANSACTION_IDS_USER CORNE_RGB_SYNC, CORNE_OWNER_SYNC
+
+#define CORNE_CONTROL_BOARD_ID CORNE_BOARD_FOOSTAN_CORNE_V41
+#define CORNE_CONTROL_LED_COUNT 46
+#define CORNE_CONTROL_LEFT_LED_COUNT 23
+#define CORNE_CONTROL_DYNAMIC_LAYERS 6
+#define CORNE_CONTROL_MAX_BRIGHTNESS 50

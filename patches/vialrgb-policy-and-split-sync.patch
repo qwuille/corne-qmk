@@ -1,0 +1,79 @@
+diff --git a/quantum/vialrgb.c b/quantum/vialrgb.c
+index 22ed975154..a7c15d2321 100644
+--- a/quantum/vialrgb.c
++++ b/quantum/vialrgb.c
+@@ -17,6 +17,16 @@ typedef struct {
+ 
+ #define SUPPORTED_MODES_LENGTH (sizeof(supported_modes)/sizeof(*supported_modes))
+ 
++__attribute__((weak)) bool vialrgb_allow_write_kb(uint8_t command) {
++    (void)command;
++    return true;
++}
++
++__attribute__((weak)) void vialrgb_direct_update_kb(uint16_t first, uint8_t count) {
++    (void)first;
++    (void)count;
++}
++
+ #ifdef RGB_MATRIX_EFFECT_VIALRGB_DIRECT
+ HSV g_direct_mode_colors[RGB_MATRIX_LED_COUNT];
+ #endif
+@@ -99,6 +109,7 @@ static void fast_set_leds(uint8_t *args, size_t length) {
+     length -= 3;
+     args += 3;
+ 
++    uint8_t applied = 0;
+     if (num_leds * 3 > length) return;
+ 
+     for (size_t i = 0; i < num_leds; ++i) {
+@@ -107,6 +118,9 @@ static void fast_set_leds(uint8_t *args, size_t length) {
+         uint8_t val = args[i * 3 + 2];
+         g_direct_mode_colors[i + first_index].v = (val > RGB_MATRIX_MAXIMUM_BRIGHTNESS) ? RGB_MATRIX_MAXIMUM_BRIGHTNESS : val;
++        ++applied;
+     }
++
++    if (applied) vialrgb_direct_update_kb(first_index, applied);
+ }
+ #endif
+ 
+@@ -163,6 +177,7 @@ void vialrgb_set_value(uint8_t *data, uint8_t length) {
+ 
+     /* data[0] is used by VIA command id */
+     uint8_t cmd = data[1];
++    if (!vialrgb_allow_write_kb(cmd)) return;
+     uint8_t *args = &data[2];
+     switch (cmd) {
+     case vialrgb_set_mode: {
+@@ -184,4 +199,3 @@ void vialrgb_save(uint8_t *data, uint8_t length) {
+ void vialrgb_save(uint8_t *data, uint8_t length) {
+-    (void)data;
+-    (void)length;
++    if (length != VIAL_RAW_EPSIZE || !vialrgb_allow_write_kb(data[1])) return;
+ 
+diff --git a/quantum/vialrgb.h b/quantum/vialrgb.h
+index 6e19e57eb3..3c6fa220e2 100644
+--- a/quantum/vialrgb.h
++++ b/quantum/vialrgb.h
+@@ -2,6 +2,7 @@
+ 
+ #pragma once
+ 
++#include <stdbool.h>
+ #include <inttypes.h>
+ 
+ #define VIALRGB_PROTOCOL_VERSION 1
+@@ -25,6 +26,13 @@ void vialrgb_get_value(uint8_t *data, uint8_t length);
+ void vialrgb_set_value(uint8_t *data, uint8_t length);
+ void vialrgb_save(uint8_t *data, uint8_t length);
+ 
++/* Keyboard policy hook: reads remain available while lighting writes can be
++ * assigned explicitly to firmware or OpenRGB. */
++bool vialrgb_allow_write_kb(uint8_t command);
++
++/* Called after a VialRGB direct packet so split keyboards can forward it. */
++void vialrgb_direct_update_kb(uint16_t first, uint8_t count);
++
+ #if defined(VIALRGB_ENABLE) && !defined(RGB_MATRIX_ENABLE)
+ #error VIALRGB_ENABLE=yes requires RGB_MATRIX_ENABLE=yes
+ #endif

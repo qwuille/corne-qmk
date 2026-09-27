@@ -1,0 +1,179 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Copyright (C) 2026 Qwuille -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Corne Control Firmware Flasher</title>
+  <style>
+    :root{color-scheme:dark;--bg:#090d14;--card:#121a27;--line:#29374c;--text:#eaf2ff;--muted:#93a4bb;--cyan:#54d7e8;--violet:#9d7cff;--green:#55d68b;--red:#ff7382}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0,#172238 0,transparent 38%),var(--bg);color:var(--text);font:15px/1.55 system-ui,sans-serif}main{width:min(980px,calc(100% - 32px));margin:32px auto 64px}header{display:flex;justify-content:space-between;gap:20px;align-items:center;margin-bottom:24px}h1,h2{margin:.15em 0;line-height:1.2}h1{font-size:1.5rem}h2{font-size:1.08rem}.eyebrow{color:var(--cyan);font-size:.73rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase}.muted{color:var(--muted)}a{color:var(--cyan)}.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px}.card{padding:22px;border:1px solid var(--line);border-radius:17px;background:linear-gradient(145deg,rgba(18,26,39,.97),rgba(13,20,31,.97));box-shadow:0 18px 55px rgba(0,0,0,.2)}.wide{grid-column:1/-1}.field{display:grid;gap:7px;margin:17px 0}.field span{font-size:.77rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}select,button{min-height:42px;border:1px solid #3a4c66;border-radius:10px;background:#182335;color:var(--text);font:inherit}select{width:100%;padding:0 12px}button{padding:0 16px;font-weight:750;cursor:pointer}button:hover:not(:disabled){border-color:var(--cyan)}button.primary{background:linear-gradient(135deg,#29798a,#5e4db7);border-color:#5f9cac}button.danger{background:#51232c;border-color:#8e3d4b}button:disabled{cursor:not-allowed;opacity:.45}.actions{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}.pill{display:inline-flex;padding:5px 9px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:.74rem;font-weight:800}.pill.ok{border-color:#28734a;color:var(--green)}.pill.error{border-color:#8e3d4b;color:var(--red)}.notice{padding:13px 15px;border:1px solid #40516d;border-radius:11px;background:#111b2a}.notice.warn{border-color:#765d32;background:#231d13}.check{display:flex;gap:10px;align-items:flex-start;margin:18px 0}.check input{margin-top:5px}.steps{padding-left:20px}.steps li+li{margin-top:8px}.details{display:grid;grid-template-columns:auto 1fr;gap:6px 15px;margin:16px 0}.details dt{color:var(--muted)}.details dd{margin:0;overflow-wrap:anywhere}progress{width:100%;height:13px;accent-color:var(--cyan)}pre{min-height:112px;max-height:230px;overflow:auto;margin:12px 0 0;padding:13px;border:1px solid #26354a;border-radius:10px;background:#090f18;color:#b9c8db;font:12px/1.5 ui-monospace,monospace;white-space:pre-wrap}.hidden{display:none!important}@media(max-width:760px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}header{align-items:flex-start;flex-direction:column}}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div><div class="eyebrow">Corne Control</div><h1>Initial firmware flasher</h1><div class="muted">Install the Corne Control firmware before using WebHID.</div></div>
+    <a href="index.html">Open control deck →</a>
+  </header>
+
+  <div class="grid">
+    <section class="card">
+      <div class="eyebrow">1 · Identify</div>
+      <h2>Keyboard and firmware</h2>
+      <p class="muted">Detection selects XTIPS automatically. An RP2040 bootloader is generic, so choose whether the PCB is SZRKBD or an original foostan Corne.</p>
+      <div class="actions">
+        <button id="detect-running">Detect running keyboard</button>
+        <button id="connect-boot">Connect bootloader</button>
+      </div>
+      <label class="field"><span>Firmware target</span><select id="target"></select></label>
+      <div id="device-pill" class="pill">NO DEVICE SELECTED</div>
+      <dl class="details">
+        <dt>File</dt><dd id="file">—</dd>
+        <dt>Size</dt><dd id="size">—</dd>
+        <dt>SHA-256</dt><dd id="hash">—</dd>
+      </dl>
+    </section>
+
+    <section class="card">
+      <div class="eyebrow">2 · Prepare</div>
+      <h2>One half at a time</h2>
+      <div class="notice warn"><strong>Disconnect the cable between the halves.</strong> Connect only the half being flashed directly to the computer. Both halves receive the same board-specific file.</div>
+      <ol id="steps" class="steps"></ol>
+      <label class="check"><input type="checkbox" id="confirm"><span>I selected the exact PCB model, disconnected the other half, and have a recovery backup where applicable.</span></label>
+    </section>
+
+    <section class="card wide">
+      <div class="eyebrow">3 · Flash</div>
+      <h2 id="action-title">Select a firmware target</h2>
+      <p id="action-copy" class="muted"></p>
+      <div class="actions">
+        <button id="flash-dfu" class="primary hidden">Flash XTIPS through WebUSB</button>
+        <button id="copy-uf2" class="primary hidden">Copy UF2 to RPI-RP2</button>
+        <button id="download">Download firmware</button>
+      </div>
+      <progress id="progress" value="0" max="100"></progress>
+      <div id="status" class="notice">Loading signed manifest…</div>
+      <pre id="log" aria-live="polite"></pre>
+    </section>
+  </div>
+</main>
+<script src="vendor/webdfu/dfu.js"></script>
+<script>
+'use strict';
+const BOOT={xtips:{vendorId:0x1eaf,productId:0x0003},rp2040:{vendorId:0x2e8a,productId:0x0003}};
+const RUNNING=[{vendorId:0x5262,productId:0x4e4b},{vendorId:0x4653,productId:0x0004}];
+const $=q=>document.querySelector(q);
+let manifest,artifacts={},bootDevice,firmwareCache=new Map();
+
+function line(message){const stamp=new Date().toLocaleTimeString();$('#log').textContent+=`[${stamp}] ${message}\n`;$('#log').scrollTop=$('#log').scrollHeight}
+function status(message,kind=''){const el=$('#status');el.textContent=message;el.className=`notice ${kind}`.trim()}
+function chosen(){return artifacts[$('#target').value]}
+function hex(value,width=4){return value.toString(16).padStart(width,'0').toUpperCase()}
+function setProgress(done,total=100){$('#progress').value=total?Math.round(done/total*100):0}
+function setDevice(text,kind=''){const el=$('#device-pill');el.textContent=text;el.className=`pill ${kind}`.trim()}
+
+async function digestHex(data){const hash=await crypto.subtle.digest('SHA-256',data);return [...new Uint8Array(hash)].map(v=>v.toString(16).padStart(2,'0')).join('')}
+function validateImage(artifact,data){
+  const view=new DataView(data);
+  if(artifact.transport==='dfu'){
+    if(data.byteLength<8)throw new Error('XTIPS binary is too short.');
+    const sp=view.getUint32(0,true),reset=view.getUint32(4,true);
+    if((sp&0xff000000)!==0x20000000||reset<0x08002001||reset>=0x08010000||(reset&1)===0)throw new Error('XTIPS vector table is not linked for the 0x08002000 STM32duino application region.');
+  }else{
+    if(data.byteLength<512||data.byteLength%512!==0||view.getUint32(0,true)!==0x0a324655||view.getUint32(4,true)!==0x9e5d5157||view.getUint32(508,true)!==0x0ab16f30)throw new Error('The selected RP2040 image is not a valid UF2 file.');
+  }
+}
+async function firmware(artifact){
+  if(firmwareCache.has(artifact.id))return firmwareCache.get(artifact.id);
+  const response=await fetch(`firmware/${artifact.file}`,{cache:'no-store'});
+  if(!response.ok)throw new Error(`Firmware download failed: HTTP ${response.status}`);
+  const data=await response.arrayBuffer();
+  if(data.byteLength!==artifact.size)throw new Error(`Firmware size mismatch: expected ${artifact.size}, received ${data.byteLength}.`);
+  const hash=await digestHex(data);
+  if(hash!==artifact.sha256)throw new Error(`Firmware SHA-256 mismatch. Expected ${artifact.sha256}, received ${hash}.`);
+  validateImage(artifact,data);firmwareCache.set(artifact.id,data);line(`Verified ${artifact.file} (${hash}).`);return data;
+}
+function selectTarget(id){if(artifacts[id]){$('#target').value=id;renderTarget()}}
+function renderTarget(){
+  const a=chosen();if(!a)return;
+  $('#file').textContent=a.file;$('#size').textContent=`${a.size.toLocaleString()} bytes`;$('#hash').textContent=a.sha256;
+  const isDfu=a.transport==='dfu';$('#flash-dfu').classList.toggle('hidden',!isDfu);$('#copy-uf2').classList.toggle('hidden',isDfu);
+  $('#action-title').textContent=isDfu?'Flash the STM32duino application':'Copy firmware to the RP2040 boot drive';
+  $('#action-copy').textContent=isDfu?'The page verifies the binary and writes DFU alternate 2, whose application begins at 0x08002000. Do not unplug during transfer.':'The browser verifies the UF2, asks you to select the RPI-RP2 drive, verifies INFO_UF2.TXT, and writes the selected board firmware.';
+  const steps=isDfu?[
+    'Connect only the XTIPS half being updated.',
+    'Enter its STM32duino bootloader; it should identify as 1EAF:0003.',
+    'Click Connect bootloader and select the STM32duino device.',
+    'Confirm the safety checkbox, then flash. Repeat for the other isolated half after testing.'
+  ]:[
+    'Choose SZRKBD or original foostan Corne above; RPI-RP2 cannot distinguish the PCB.',
+    'Hold BOOTSEL while connecting only the half being updated, or use QK_BOOT from working firmware.',
+    'Wait for the RPI-RP2 drive, confirm the safety checkbox, then click Copy UF2.',
+    'Select the root of RPI-RP2 when the browser asks. Repeat for the other isolated half.'
+  ];$('#steps').replaceChildren(...steps.map(s=>{const li=document.createElement('li');li.textContent=s;return li}));
+}
+async function loadManifest(){
+  const response=await fetch('firmware/manifest.json',{cache:'no-store'});if(!response.ok)throw new Error('Firmware manifest is unavailable.');
+  manifest=await response.json();if(manifest.format!=='corne-control-firmware'||manifest.version!==1)throw new Error('Unsupported firmware manifest.');
+  for(const a of manifest.artifacts)artifacts[a.id]=a;
+  $('#target').replaceChildren(...manifest.artifacts.map(a=>{const o=document.createElement('option');o.value=a.id;o.textContent=a.name;return o}));
+  renderTarget();status('Manifest loaded. Detect the keyboard or choose the exact target.');line(`Loaded manifest generated ${manifest.generatedUtc}.`);
+}
+async function detectRunning(){
+  if(!navigator.hid)throw new Error('WebHID requires Chrome or Edge over HTTPS or localhost.');
+  const devices=await navigator.hid.requestDevice({filters:RUNNING});if(!devices.length)return;
+  const device=devices[0];setDevice(`RUNNING ${hex(device.vendorId)}:${hex(device.productId)}`,'ok');
+  if(device.vendorId===0x5262){selectTarget('xtips');status('XTIPS detected in normal firmware mode. Put the isolated half into bootloader mode, then connect the bootloader.');}
+  else{if(chosen()?.transport==='dfu')selectTarget('szrkbd');status('A Corne v4.1 RP2040 identity was detected. Select SZRKBD or original foostan explicitly; their USB identities are identical.');}
+  line(`Running HID device: ${device.productName||'keyboard'} ${hex(device.vendorId)}:${hex(device.productId)}.`);
+}
+async function connectBootloader(){
+  if(!navigator.usb)throw new Error('WebUSB requires Chrome or Edge over HTTPS or localhost.');
+  bootDevice=await navigator.usb.requestDevice({filters:[BOOT.xtips,BOOT.rp2040]});
+  const id=`${hex(bootDevice.vendorId)}:${hex(bootDevice.productId)}`;setDevice(`BOOTLOADER ${id}`,'ok');line(`Selected bootloader ${bootDevice.productName||''} ${id}.`);
+  if(bootDevice.vendorId===BOOT.xtips.vendorId){selectTarget('xtips');status('XTIPS STM32duino bootloader selected. Confirm the isolation checkbox before flashing.');}
+  else{if(chosen()?.transport==='dfu')selectTarget('szrkbd');status('Generic RP2040 BOOTSEL device selected. Explicitly choose SZRKBD or original foostan before copying the UF2.');}
+}
+function requireConfirmation(){if(!$('#confirm').checked)throw new Error('Confirm the PCB selection and isolated-half safety check first.')}
+async function getDfuProperties(device){
+  const raw=await device.readConfigurationDescriptor(0),config=dfu.parseConfigurationDescriptor(raw);let desc;
+  for(const candidate of config.descriptors)if(candidate.bDescriptorType===0x21&&Object.hasOwn(candidate,'bcdDFUVersion')){desc=candidate;break}
+  return desc?{canDownload:!!(desc.bmAttributes&1),manifestationTolerant:!!(desc.bmAttributes&4),transferSize:desc.wTransferSize}:{};
+}
+async function flashDfu(){
+  requireConfirmation();const a=chosen();if(a?.id!=='xtips')throw new Error('Select the XTIPS target for STM32duino DFU.');
+  if(!bootDevice||bootDevice.vendorId!==BOOT.xtips.vendorId)await connectBootloader();
+  if(bootDevice.vendorId!==BOOT.xtips.vendorId)throw new Error('The selected USB device is not the XTIPS STM32duino bootloader.');
+  const data=await firmware(a),interfaces=dfu.findDeviceDfuInterfaces(bootDevice);const setting=interfaces.find(i=>i.alternate.interfaceProtocol===2&&i.alternate.alternateSetting===2);
+  if(!setting)throw new Error('DFU alternate 2 was not exposed by this bootloader. No data was written.');
+  const device=new dfu.Device(bootDevice,setting);device.logInfo=line;device.logWarning=line;device.logError=line;device.logDebug=()=>{};device.logProgress=setProgress;
+  status('Opening DFU alternate 2…');await device.open();
+  try{
+    const props=await getDfuProperties(device);if(props.canDownload===false)throw new Error('Bootloader reports that downloads are disabled.');
+    let state=await device.getState();if(state===dfu.dfuERROR){await device.clearStatus();state=await device.getState()}if(state!==dfu.dfuIDLE)await device.abortToIdle();
+    const transferSize=props.transferSize||1024;line(`Writing ${data.byteLength} bytes in ${transferSize}-byte DFU transfers to alternate 2.`);status('Flashing XTIPS. Keep it connected…');
+    await device.do_download(transferSize,data,props.manifestationTolerant??false);setProgress(100);status('XTIPS transfer completed and the half was reset. Test this half before flashing the second half.');line('DFU transfer completed.');
+  }finally{try{await device.close()}catch{}}
+}
+async function copyUf2(){
+  requireConfirmation();const a=chosen();if(!a||a.transport!=='uf2')throw new Error('Select SZRKBD or original foostan Corne for UF2 flashing.');
+  if(!window.showDirectoryPicker)throw new Error('This browser cannot write a selected folder. Use Download firmware and copy the UF2 to RPI-RP2 manually.');
+  const data=await firmware(a);status('Select the root of the RPI-RP2 drive in the folder chooser.');
+  const directory=await showDirectoryPicker({mode:'readwrite'});let info;
+  try{const handle=await directory.getFileHandle('INFO_UF2.TXT');info=await (await handle.getFile()).text()}catch{throw new Error('The selected folder has no INFO_UF2.TXT. Refusing to write because it is not an RP2040 boot drive.')}
+  if(!/UF2|RP2040|RP2/i.test(info))throw new Error('INFO_UF2.TXT does not identify a compatible RP2040 UF2 bootloader.');
+  line(`Verified RPI-RP2 boot volume: ${info.trim().split(/\r?\n/)[0]}`);const handle=await directory.getFileHandle(a.file,{create:true});const writable=await handle.createWritable();let written=false;
+  try{await writable.write(data);written=true;await writable.close()}catch(error){if(!written)throw error;line(`Drive disconnected after accepting the UF2: ${error}`)}
+  setProgress(100);status(`${a.name} UF2 was copied. The half should reboot automatically; test it before updating the other half.`);line(`Copied ${a.file} to RPI-RP2.`);
+}
+async function downloadFirmware(){const a=chosen(),data=await firmware(a),url=URL.createObjectURL(new Blob([data],{type:'application/octet-stream'})),link=document.createElement('a');link.href=url;link.download=a.file;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);status(`Downloaded verified firmware: ${a.file}`)}
+async function run(task){document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await task()}catch(error){console.error(error);status(String(error?.message||error),'warn');line(`ERROR: ${error?.message||error}`)}finally{document.querySelectorAll('button').forEach(b=>b.disabled=false)}}
+
+$('#target').onchange=renderTarget;$('#detect-running').onclick=()=>run(detectRunning);$('#connect-boot').onclick=()=>run(connectBootloader);$('#flash-dfu').onclick=()=>run(flashDfu);$('#copy-uf2').onclick=()=>run(copyUf2);$('#download').onclick=()=>run(downloadFirmware);
+navigator.usb?.addEventListener('disconnect',event=>{if(event.device!==bootDevice)return;bootDevice=undefined;setDevice('BOOTLOADER DISCONNECTED');line('Bootloader disconnected.')});
+run(loadManifest);
+</script>
+</body>
+</html>

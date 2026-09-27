@@ -1,0 +1,19 @@
+{
+  "vialQmk": {
+    "url": "https://github.com/vial-kb/vial-qmk.git",
+    "commit": "dd43959ae5c08d8a28d38a1acf7b04e86b14a344"
+  },
+  "xtipsQmkKeyboard": {
+    "url": "https://github.com/X-Tips/QMK-Keyboard.git",
+    "commit": "6e15903a7a210bd68706431e5ace45097a4c197e"
+  },
+  "foostanKeyboardFirmware": {
+    "url": "https://github.com/foostan/kbd_firmware.git",
+    "commit": "b38479ca28f3787a95cd1984022110482385e3bc",
+    "vialQmkCommit": "cab779b912c49c3366b949eb5cbb073bc8ff8822"
+  },
+  "webDfu": {
+    "url": "https://github.com/devanlai/webdfu.git",
+    "commit": "56d5d1d961587aca381a1ce97acbc8ff5d807acd"
+  }
+}

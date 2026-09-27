@@ -1,0 +1,10 @@
+Corne Control
+Copyright (C) 2026 Qwuille
+
+Original project code, browser tooling, and documentation are licensed under
+GPL-3.0-or-later unless a file states otherwise. Firmware source integrated
+with QMK is licensed under GPL-2.0-or-later as marked in those files.
+
+Third-party work remains under its original license and copyright. See
+webhid/THIRD_PARTY_NOTICES.md and the license files distributed with vendored
+source.
