@@ -12,6 +12,7 @@ $firmwareRoot = Join-Path $webRoot 'firmware'
 $vendorRoot = Join-Path $webRoot 'vendor\webdfu'
 $sourceRoot = Join-Path $projectRoot '.build\vendor\webdfu'
 $lock = Get-Content -LiteralPath (Join-Path $projectRoot 'upstream.lock.json') -Raw | ConvertFrom-Json
+. (Join-Path $PSScriptRoot 'firmware-storage.ps1')
 
 $actualWebDfu = git -c "safe.directory=$($sourceRoot -replace '\\','/')" -C $sourceRoot rev-parse HEAD
 if ($LASTEXITCODE -ne 0 -or $actualWebDfu.Trim() -ne $lock.webDfu.commit) {
@@ -29,6 +30,11 @@ foreach ($artifact in $artifacts) {
     $source = Join-Path $distRoot $artifact.file
     if (-not (Test-Path -LiteralPath $source)) {
         throw "Missing $source. Build all firmware targets first."
+    }
+    if ($artifact.transport -eq 'dfu') {
+        Assert-XtipsFirmwarePreservesEeprom -Path $source
+    } else {
+        Assert-Rp2040Uf2PreservesEeprom -Path $source
     }
     Copy-Item -LiteralPath $source -Destination (Join-Path $firmwareRoot $artifact.file) -Force
     $item = Get-Item -LiteralPath $source

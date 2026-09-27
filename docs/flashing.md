@@ -4,6 +4,15 @@ Corne Control must be flashed once before the WebHID control deck can connect.
 These instructions use the ready-made firmware files committed under
 `webhid/firmware/`; compiling the project first is not required.
 
+## Preserving the current layout
+
+Later updates made with the commands on this page preserve the keyboard's
+emulated EEPROM: Vial layers, macros, combos, Tap Dance, saved RGB settings,
+and Corne Control ownership remain in place. Do not perform a mass erase or an
+EEPROM reset. Before the first conversion from factory firmware, and before a
+major update, export a Vial `.vil` backup anyway. See
+[Persistent settings](persistence.md) for storage boundaries and exceptions.
+
 ## Before flashing either keyboard
 
 1. Disconnect USB and disconnect the cable between the two keyboard halves.

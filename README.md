@@ -18,6 +18,7 @@ The targets share behavior, not hardware declarations. Never flash one board's a
 - RGB shutdown on normal USB suspend and when the host is no longer configured, covering PCs that retain USB standby power after shutdown.
 - A versioned WebHID protocol and one control deck for all three firmware identities.
 - Direct, EEPROM-safe live RGB preview from the WebHID controls, with an explicit save action.
+- Reflash-persistent Vial and Corne Control settings, with artifact guards that prevent firmware from overlapping emulated EEPROM.
 - Live layer, Caps Lock, Num Lock, Scroll Lock, split-role, and RGB suspend status.
 - CSS-only keyboard maps with animated RGB frames on the physical LED-equipped keys; no image assets are required.
 - WebHID JSON export/import, kept separate from Vial's `.vil` layout backup.
@@ -65,7 +66,7 @@ Then open `http://localhost:8000`. Use **Initial flash** before the control deck
 | SZRKBD Corne v4.1 | `4653:0004` | 46, 23 per half |
 | foostan Corne v4.1 standard | `4653:0004` | 46, 23 per half |
 
-Use Vial for keymaps, macros, combos, and Tap Dance. Use Corne Control for lighting ownership and board-specific status. See [initial flashing](docs/flashing.md), [the protocol](webhid/PROTOCOL.md), and [OpenRGB setup](docs/openrgb.md).
+Use Vial for keymaps, macros, combos, and Tap Dance. Use Corne Control for lighting ownership and board-specific status. See [initial flashing](docs/flashing.md), [persistent settings](docs/persistence.md), [the protocol](webhid/PROTOCOL.md), and [OpenRGB setup](docs/openrgb.md).
 
 ## Safety
 

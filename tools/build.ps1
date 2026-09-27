@@ -14,6 +14,7 @@ $distRoot = Join-Path $projectRoot 'dist'
 $lock = Get-Content -LiteralPath (Join-Path $projectRoot 'upstream.lock.json') -Raw | ConvertFrom-Json
 $vialPatch = Join-Path $projectRoot 'patches\vialrgb-policy-and-split-sync.patch'
 $commonRoot = Join-Path $projectRoot 'firmware\common'
+. (Join-Path $PSScriptRoot 'firmware-storage.ps1')
 
 function Assert-PinnedRepository {
     param([string] $Path, [string] $Expected)
@@ -78,9 +79,17 @@ function Invoke-QmkCompile {
 }
 
 function Copy-NewestArtifact {
-    param([string] $QmkRoot, [string] $Pattern, [string] $DestinationName)
+    param(
+        [string] $QmkRoot,
+        [string] $Pattern,
+        [string] $DestinationName,
+        [ValidateSet('xtips-bin', 'rp2040-uf2')]
+        [string] $StorageGuard
+    )
     $artifact = Get-ChildItem -LiteralPath (Join-Path $QmkRoot '.build') -File | Where-Object Name -Like $Pattern | Sort-Object LastWriteTime -Descending | Select-Object -First 1
     if (-not $artifact) { throw "No build artifact matching $Pattern was produced." }
+    if ($StorageGuard -eq 'xtips-bin') { Assert-XtipsFirmwarePreservesEeprom -Path $artifact.FullName }
+    if ($StorageGuard -eq 'rp2040-uf2') { Assert-Rp2040Uf2PreservesEeprom -Path $artifact.FullName }
     New-Item -ItemType Directory -Force -Path $distRoot | Out-Null
     Copy-Item -LiteralPath $artifact.FullName -Destination (Join-Path $distRoot $DestinationName) -Force
 }
@@ -97,7 +106,7 @@ function Build-Xtips {
     Install-KeymapOverlay -BaseKeymap (Join-Path $sourceRoot 'v4s\keymaps\vial') -Overlay (Join-Path $projectRoot 'firmware\xtips_v4s_103c') -Destination (Join-Path $keyboardDestination 'keymaps\corne_control') -AllowedRoot (Join-Path $qmkRoot 'keyboards')
 
     Invoke-QmkCompile -QmkRoot $qmkRoot -Keyboard 'xtips/v4s/103c' -Keymap 'corne_control'
-    Copy-NewestArtifact -QmkRoot $qmkRoot -Pattern '*xtips*v4s*103c*corne_control*.bin' -DestinationName 'xtips-v4s-103c-corne-control.bin'
+    Copy-NewestArtifact -QmkRoot $qmkRoot -Pattern '*xtips*v4s*103c*corne_control*.bin' -DestinationName 'xtips-v4s-103c-corne-control.bin' -StorageGuard 'xtips-bin'
 }
 
 function Build-Rp2040Corne {
@@ -119,7 +128,7 @@ function Build-Rp2040Corne {
     Install-KeymapOverlay -BaseKeymap (Join-Path $keymapsDestination 'vial') -Overlay (Join-Path $projectRoot "firmware\$OverlayName") -Destination (Join-Path $keymapsDestination $KeymapName) -AllowedRoot (Join-Path $qmkRoot 'keyboards')
 
     Invoke-QmkCompile -QmkRoot $qmkRoot -Keyboard 'tmp/crkbd/rev4_1/standard' -Keymap $KeymapName
-    Copy-NewestArtifact -QmkRoot $qmkRoot -Pattern "*tmp*crkbd*rev4_1*standard*$KeymapName*.uf2" -DestinationName $ArtifactName
+    Copy-NewestArtifact -QmkRoot $qmkRoot -Pattern "*tmp*crkbd*rev4_1*standard*$KeymapName*.uf2" -DestinationName $ArtifactName -StorageGuard 'rp2040-uf2'
 }
 
 function Build-Szrkbd {
