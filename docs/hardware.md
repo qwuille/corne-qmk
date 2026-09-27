@@ -18,7 +18,7 @@ The manufacturer publishes a QMK/Vial hardware definition and a prebuilt `.bin`.
 | Split transport | USART serial, pin `B6` |
 | Handedness | Pin `B7` |
 | Encoders | One rotary encoder per half |
-| Lighting | QMK RGBLight, two WS2812 LEDs, one per half, data pin `A9` |
+| Lighting | Two WS2812 LEDs, one per half, data pin `A9` / TIM1 channel 2 |
 | Dynamic layers | 9 |
 | Bootmagic | Hold `E` for the left half or `I` for the right half while connecting USB |
 
@@ -30,7 +30,7 @@ The physical MCU marking is Geehy `APM32F103C8T6`, not an ST-manufactured STM32F
 
 The V4s is a 3x6 split with three thumb keys and two additional keys along the inner edge of each half (46 keys total). The upstream default assigns those four inner keys to editing shortcuts.
 
-Lighting is limited to one RGB indicator LED on each half; this target must not inherit the SZRKBD full-key RGB topology.
+Lighting is limited to one RGB indicator LED on each half; this target must not inherit the SZRKBD full-key RGB topology. The maintained firmware uses the STM32 hardware PWM/DMA WS2812 driver because software bit-banging produced visible flicker on the physical APM32 clone. To remain within the 64 KB flash/storage boundary, XTIPS provides solid, breathing, and rainbow firmware effects plus VialRGB/OpenRGB; the RP2040 targets retain all five firmware effects.
 
 The supplied link identifies the keyboard family as `v4s`. The current upstream source separates `v4s/103c` and `v4s/072c`; the physical APM32F103C8T6 selects `v4s/103c`. The other top-level folders (for example `v3s`, `v4e`, and `v4x`) are different keyboard models.
 
@@ -44,7 +44,7 @@ qmk compile -kb xtips/v4s/103c -km corne_control
 
 The expected artifact format is `.bin` because the target uses the STM32duino bootloader.
 
-The 64 KB device rating and STM32duino application boundary are release constraints. The current build reports 48,944 bytes and produces a 48,960-byte binary, below the 57,344-byte application region beginning at `0x08002000`. Preserve that margin rather than relying on undocumented extra flash.
+The 64 KB device rating and STM32duino application boundary are release constraints. The current build reports 48,992 bytes and produces a 49,008-byte binary. The application begins at `0x08002000`, and the final 8 KiB beginning at `0x0800E000` is reserved for emulated EEPROM, leaving a maximum application-image size of 49,152 bytes. The automated guard reports 144 bytes of remaining image space and rejects any larger build rather than relying on undocumented extra flash.
 
 The unused USB-C connector is located at the top of the XTIPS board. A display pod for this target should account for upward cable exit, connector strain relief, and clearance around the case and nearby keys.
 

@@ -31,6 +31,9 @@
 #ifndef CORNE_CONTROL_MAX_BRIGHTNESS
 #    define CORNE_CONTROL_MAX_BRIGHTNESS RGB_MATRIX_MAXIMUM_BRIGHTNESS
 #endif
+#ifndef CORNE_CONTROL_EFFECT_COUNT
+#    define CORNE_CONTROL_EFFECT_COUNT CORNE_EFFECT_COUNT
+#endif
 
 #define CORNE_CONFIG_MAGIC 0xC7u
 #define CORNE_CONFIG_OWNER_BIT 8u
@@ -84,10 +87,14 @@ static uint8_t corne_effect_from_qmk(uint8_t mode) {
             return CORNE_EFFECT_BREATHING;
         case RGB_MATRIX_CYCLE_ALL:
             return CORNE_EFFECT_RAINBOW;
+#ifdef ENABLE_RGB_MATRIX_HUE_WAVE
         case RGB_MATRIX_HUE_WAVE:
             return CORNE_EFFECT_HUE_WAVE;
+#endif
+#ifdef ENABLE_RGB_MATRIX_SOLID_REACTIVE_SIMPLE
         case RGB_MATRIX_SOLID_REACTIVE_SIMPLE:
             return CORNE_EFFECT_REACTIVE;
+#endif
         default:
             return CORNE_EFFECT_SOLID;
     }
@@ -99,10 +106,14 @@ static uint8_t corne_effect_to_qmk(uint8_t effect) {
             return RGB_MATRIX_BREATHING;
         case CORNE_EFFECT_RAINBOW:
             return RGB_MATRIX_CYCLE_ALL;
+#ifdef ENABLE_RGB_MATRIX_HUE_WAVE
         case CORNE_EFFECT_HUE_WAVE:
             return RGB_MATRIX_HUE_WAVE;
+#endif
+#ifdef ENABLE_RGB_MATRIX_SOLID_REACTIVE_SIMPLE
         case CORNE_EFFECT_REACTIVE:
             return RGB_MATRIX_SOLID_REACTIVE_SIMPLE;
+#endif
         default:
             return RGB_MATRIX_SOLID_COLOR;
     }
@@ -292,7 +303,7 @@ static void corne_reply_info(uint8_t *data) {
     data[9]  = CORNE_CONTROL_LEFT_LED_COUNT;
     data[10] = CORNE_CONTROL_MAX_BRIGHTNESS;
     data[11] = CORNE_CONTROL_DYNAMIC_LAYERS;
-    data[12] = CORNE_EFFECT_COUNT;
+    data[12] = CORNE_CONTROL_EFFECT_COUNT;
 }
 
 static void corne_reply_lighting(uint8_t *data) {
@@ -340,7 +351,7 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
             break;
         case CORNE_OP_SET_LIGHTING:
         case CORNE_OP_PREVIEW_LIGHTING: {
-            if (data[3] > CORNE_OWNER_OPENRGB || data[4] > 1 || data[5] >= CORNE_EFFECT_COUNT) {
+            if (data[3] > CORNE_OWNER_OPENRGB || data[4] > 1 || data[5] >= CORNE_CONTROL_EFFECT_COUNT) {
                 data[2] = CORNE_STATUS_BAD_VALUE;
                 break;
             }

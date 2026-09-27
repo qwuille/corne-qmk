@@ -16,6 +16,7 @@ The targets share behavior, not hardware declarations. Never flash one board's a
 - Persistent Firmware/OpenRGB lighting ownership.
 - Direct OpenRGB color forwarding from the USB master to whichever physical half is secondary.
 - RGB shutdown on normal USB suspend and when the host is no longer configured, covering PCs that retain USB standby power after shutdown.
+- Hardware-timed PWM/DMA WS2812 output on XTIPS, verified to eliminate APM32 LED flicker.
 - A versioned WebHID protocol and one control deck for all three firmware identities.
 - Direct, EEPROM-safe live RGB preview from the WebHID controls, with an explicit save action.
 - Reflash-persistent Vial and Corne Control settings, with artifact guards that prevent firmware from overlapping emulated EEPROM.

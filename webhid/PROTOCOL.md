@@ -34,7 +34,7 @@ Reply payload:
 | --- | --- |
 | 3 | owner: `0` firmware, `1` OpenRGB |
 | 4 | enabled |
-| 5 | effect: solid, breathing, rainbow, hue wave, reactive |
+| 5 | effect: `0` solid, `1` breathing, `2` rainbow, `3` hue wave, `4` reactive |
 | 6 | hue |
 | 7 | saturation |
 | 8 | brightness |
@@ -42,6 +42,8 @@ Reply payload:
 | 10 | get-only suspend state |
 
 OpenRGB writes are accepted only while owner `1` is stored. Firmware RGB configuration remains in QMK EEPROM and is restored when ownership returns to firmware.
+Clients must use the effect count reported by `0x00`: XTIPS exposes effects
+`0` through `2`, while both RP2040 targets expose `0` through `4`.
 
 ### `0x05` — Preview lighting
 

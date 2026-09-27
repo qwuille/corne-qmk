@@ -29,6 +29,11 @@ Acceptance testing must include tap, hold, double-tap, tap-hold, and interruptio
 
 ## Lighting ownership
 
+XTIPS drives its A9 WS2812 line from STM32 TIM1 channel 2 with PWM and DMA.
+Software bit-banging was rejected after physical testing showed visible flicker
+on the APM32F103 clone. Its flash budget retains solid, breathing, and rainbow
+firmware effects; VialRGB/OpenRGB direct color remains available.
+
 The firmware stores one owner bit in QMK's user EEPROM:
 
 - **Firmware** rejects VialRGB writes and runs the saved QMK RGB Matrix effect.

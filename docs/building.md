@@ -50,7 +50,7 @@ The source checkouts are disposable build inputs. Tracked source lives in `firmw
 
 | Target | Upstream QMK target | Result |
 | --- | --- | --- |
-| XTIPS | `xtips/v4s/103c:corne_control` | `.bin`, 48,960 bytes (48,944-byte QMK payload) |
+| XTIPS | `xtips/v4s/103c:corne_control` | `.bin`, 49,008 bytes (48,992-byte QMK payload) |
 | SZRKBD | `tmp/crkbd/rev4_1/standard:corne_control_szrkbd` | `.uf2`, 133,120 bytes |
 | foostan v4.1 standard | `tmp/crkbd/rev4_1/standard:corne_control_foostan` | `.uf2`, 133,120 bytes |
 
