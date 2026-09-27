@@ -51,7 +51,7 @@
       <div class="actions">
         <button id="flash-dfu" class="primary hidden">Flash XTIPS through WebUSB</button>
         <button id="copy-uf2" class="primary hidden">Copy UF2 to RPI-RP2</button>
-        <button id="download">Download firmware</button>
+        <button id="download" disabled>Download firmware</button>
       </div>
       <progress id="progress" value="0" max="100"></progress>
       <div id="status" class="notice">Loading signed manifest…</div>
@@ -70,6 +70,7 @@ let manifest,artifacts={},bootDevice,firmwareCache=new Map();
 function line(message){const stamp=new Date().toLocaleTimeString();$('#log').textContent+=`[${stamp}] ${message}\n`;$('#log').scrollTop=$('#log').scrollHeight}
 function status(message,kind=''){const el=$('#status');el.textContent=message;el.className=`notice ${kind}`.trim()}
 function chosen(){return artifacts[$('#target').value]}
+function requireTarget(){const artifact=chosen();if(!artifact)throw new Error('The firmware manifest is not loaded. Reload this hosted page before flashing; no data was written.');return artifact}
 function hex(value,width=4){return value.toString(16).padStart(width,'0').toUpperCase()}
 function setProgress(done,total=100){$('#progress').value=total?Math.round(done/total*100):0}
 function setDevice(text,kind=''){const el=$('#device-pill');el.textContent=text;el.className=`pill ${kind}`.trim()}
@@ -86,6 +87,7 @@ function validateImage(artifact,data){
   }
 }
 async function firmware(artifact){
+  if(!artifact)throw new Error('No verified firmware target is available. Reload the page; no data was written.');
   if(firmwareCache.has(artifact.id))return firmwareCache.get(artifact.id);
   const response=await fetch(`firmware/${artifact.file}`,{cache:'no-store'});
   if(!response.ok)throw new Error(`Firmware download failed: HTTP ${response.status}`);
@@ -97,7 +99,8 @@ async function firmware(artifact){
 }
 function selectTarget(id){if(artifacts[id]){$('#target').value=id;renderTarget()}}
 function renderTarget(){
-  const a=chosen();if(!a)return;
+  const a=chosen();if(!a){$('#flash-dfu').classList.add('hidden');$('#copy-uf2').classList.add('hidden');$('#download').disabled=true;$('#action-title').textContent='Select a firmware target';$('#action-copy').textContent='The signed firmware manifest must load before flashing is enabled.';return}
+  $('#download').disabled=false;
   $('#file').textContent=a.file;$('#size').textContent=`${a.size.toLocaleString()} bytes`;$('#hash').textContent=a.sha256;
   const isDfu=a.transport==='dfu';$('#flash-dfu').classList.toggle('hidden',!isDfu);$('#copy-uf2').classList.toggle('hidden',isDfu);
   $('#action-title').textContent=isDfu?'Flash the STM32duino application':'Copy firmware to the RP2040 boot drive';
@@ -115,8 +118,15 @@ function renderTarget(){
   ];$('#steps').replaceChildren(...steps.map(s=>{const li=document.createElement('li');li.textContent=s;return li}));
 }
 async function loadManifest(){
-  const response=await fetch('firmware/manifest.json',{cache:'no-store'});if(!response.ok)throw new Error('Firmware manifest is unavailable.');
-  manifest=await response.json();if(manifest.format!=='corne-control-firmware'||manifest.version!==1)throw new Error('Unsupported firmware manifest.');
+  if(location.protocol==='file:')throw new Error('The flasher cannot load firmware from a file:// page. Open the GitHub Pages flasher or serve webhid over localhost.');
+  let response,lastError;
+  for(let attempt=1;attempt<=3;attempt++){
+    try{const url=new URL('firmware/manifest.json',location.href);url.searchParams.set('request',`${Date.now()}-${attempt}`);response=await fetch(url,{cache:'no-store'});if(response.ok)break;lastError=new Error(`HTTP ${response.status}`)}catch(error){lastError=error}
+    if(attempt<3)await new Promise(resolve=>setTimeout(resolve,350*attempt));
+  }
+  if(!response?.ok)throw new Error(`Firmware manifest is unavailable after three attempts (${lastError?.message||'network error'}). Reload the page; flashing remains disabled.`);
+  manifest=await response.json();if(manifest.format!=='corne-control-firmware'||manifest.version!==1||!Array.isArray(manifest.artifacts)||!manifest.artifacts.length)throw new Error('Unsupported or empty firmware manifest. Flashing remains disabled.');
+  artifacts={};
   for(const a of manifest.artifacts)artifacts[a.id]=a;
   $('#target').replaceChildren(...manifest.artifacts.map(a=>{const o=document.createElement('option');o.value=a.id;o.textContent=a.name;return o}));
   renderTarget();status('Manifest loaded. Detect the keyboard or choose the exact target.');line(`Loaded manifest generated ${manifest.generatedUtc}.`);
@@ -143,7 +153,7 @@ async function getDfuProperties(device){
   return desc?{canDownload:!!(desc.bmAttributes&1),manifestationTolerant:!!(desc.bmAttributes&4),transferSize:desc.wTransferSize}:{};
 }
 async function flashDfu(){
-  requireConfirmation();const a=chosen();if(a?.id!=='xtips')throw new Error('Select the XTIPS target for STM32duino DFU.');
+  requireConfirmation();const a=requireTarget();if(a.id!=='xtips')throw new Error('Select the XTIPS target for STM32duino DFU.');
   if(!bootDevice||bootDevice.vendorId!==BOOT.xtips.vendorId)await connectBootloader();
   if(bootDevice.vendorId!==BOOT.xtips.vendorId)throw new Error('The selected USB device is not the XTIPS STM32duino bootloader.');
   const data=await firmware(a),interfaces=dfu.findDeviceDfuInterfaces(bootDevice);const setting=interfaces.find(i=>i.alternate.interfaceProtocol===2&&i.alternate.alternateSetting===2);
@@ -158,7 +168,7 @@ async function flashDfu(){
   }finally{try{await device.close()}catch{}}
 }
 async function copyUf2(){
-  requireConfirmation();const a=chosen();if(!a||a.transport!=='uf2')throw new Error('Select SZRKBD or original foostan Corne for UF2 flashing.');
+  requireConfirmation();const a=requireTarget();if(a.transport!=='uf2')throw new Error('Select SZRKBD or original foostan Corne for UF2 flashing.');
   if(!window.showDirectoryPicker)throw new Error('This browser cannot write a selected folder. Use Download firmware and copy the UF2 to RPI-RP2 manually.');
   const data=await firmware(a);status('Select the root of the RPI-RP2 drive in the folder chooser.');
   const directory=await showDirectoryPicker({mode:'readwrite'});let info;
@@ -168,8 +178,8 @@ async function copyUf2(){
   try{await writable.write(data);written=true;await writable.close()}catch(error){if(!written)throw error;line(`Drive disconnected after accepting the UF2: ${error}`)}
   setProgress(100);status(`${a.name} UF2 was copied. The half should reboot automatically; test it before updating the other half.`);line(`Copied ${a.file} to RPI-RP2.`);
 }
-async function downloadFirmware(){const a=chosen(),data=await firmware(a),url=URL.createObjectURL(new Blob([data],{type:'application/octet-stream'})),link=document.createElement('a');link.href=url;link.download=a.file;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);status(`Downloaded verified firmware: ${a.file}`)}
-async function run(task){document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await task()}catch(error){console.error(error);status(String(error?.message||error),'warn');line(`ERROR: ${error?.message||error}`)}finally{document.querySelectorAll('button').forEach(b=>b.disabled=false)}}
+async function downloadFirmware(){const a=requireTarget(),data=await firmware(a),url=URL.createObjectURL(new Blob([data],{type:'application/octet-stream'})),link=document.createElement('a');link.href=url;link.download=a.file;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);status(`Downloaded verified firmware: ${a.file}`)}
+async function run(task){document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await task()}catch(error){console.error(error);status(String(error?.message||error),'warn');line(`ERROR: ${error?.message||error}`)}finally{document.querySelectorAll('button').forEach(b=>b.disabled=false);renderTarget()}}
 
 $('#target').onchange=renderTarget;$('#detect-running').onclick=()=>run(detectRunning);$('#connect-boot').onclick=()=>run(connectBootloader);$('#flash-dfu').onclick=()=>run(flashDfu);$('#copy-uf2').onclick=()=>run(copyUf2);$('#download').onclick=()=>run(downloadFirmware);
 navigator.usb?.addEventListener('disconnect',event=>{if(event.device!==bootDevice)return;bootDevice=undefined;setDevice('BOOTLOADER DISCONNECTED');line('Bootloader disconnected.')});
