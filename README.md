@@ -67,7 +67,7 @@ Then open `http://localhost:8000`. Use **Initial flash** before the control deck
 | SZRKBD Corne v4.1 | `4653:0004` | 46, 23 per half |
 | foostan Corne v4.1 standard | `4653:0004` | 46, 23 per half |
 
-Use Vial for keymaps, macros, combos, and Tap Dance. Use Corne Control for lighting ownership and board-specific status. See [initial flashing](docs/flashing.md), [persistent settings](docs/persistence.md), [the protocol](webhid/PROTOCOL.md), and [OpenRGB setup](docs/openrgb.md).
+Use Vial for keymaps, macros, combos, and Tap Dance. Use Corne Control for lighting ownership and board-specific status. See [initial flashing](docs/flashing.md), [persistent settings](docs/persistence.md), [upstream compatibility tracking](docs/upstream-tracking.md), [the protocol](webhid/PROTOCOL.md), and [OpenRGB setup](docs/openrgb.md).
 
 ## Safety
 
