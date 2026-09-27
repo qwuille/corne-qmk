@@ -44,7 +44,7 @@ qmk compile -kb xtips/v4s/103c -km corne_control
 
 The expected artifact format is `.bin` because the target uses the STM32duino bootloader.
 
-The 64 KB device rating and STM32duino application boundary are release constraints. The current build reports 48,880 bytes and produces a 48,896-byte binary, below the 57,344-byte application region beginning at `0x08002000`. Preserve that margin rather than relying on undocumented extra flash.
+The 64 KB device rating and STM32duino application boundary are release constraints. The current build reports 48,944 bytes and produces a 48,960-byte binary, below the 57,344-byte application region beginning at `0x08002000`. Preserve that margin rather than relying on undocumented extra flash.
 
 The unused USB-C connector is located at the top of the XTIPS board. A display pod for this target should account for upward cable exit, connector strain relief, and clearance around the case and nearby keys.
 

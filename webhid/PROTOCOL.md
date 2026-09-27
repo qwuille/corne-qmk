@@ -43,6 +43,13 @@ Reply payload:
 
 OpenRGB writes are accepted only while owner `1` is stored. Firmware RGB configuration remains in QMK EEPROM and is restored when ownership returns to firmware.
 
+### `0x05` — Preview lighting
+
+Uses the same payload as `0x02`, but applies it only to live RAM state. This is
+used for interactive sliders and does not write QMK or Corne Control EEPROM.
+Send `0x02` to save the selected values. Preview lighting is available from
+protocol version 1.1.
+
 ### `0x03` — Get live status
 
 Byte 3 is the highest active layer, byte 4 is the USB host LED bitmask, byte 5 reports the USB-master role, and byte 6 reports RGB suspend state.

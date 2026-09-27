@@ -17,6 +17,7 @@ The targets share behavior, not hardware declarations. Never flash one board's a
 - Direct OpenRGB color forwarding from the USB master to whichever physical half is secondary.
 - RGB shutdown on normal USB suspend and when the host is no longer configured, covering PCs that retain USB standby power after shutdown.
 - A versioned WebHID protocol and one control deck for all three firmware identities.
+- Direct, EEPROM-safe live RGB preview from the WebHID controls, with an explicit save action.
 - Live layer, Caps Lock, Num Lock, Scroll Lock, split-role, and RGB suspend status.
 - CSS-only keyboard maps with animated RGB frames on the physical LED-equipped keys; no image assets are required.
 - WebHID JSON export/import, kept separate from Vial's `.vil` layout backup.

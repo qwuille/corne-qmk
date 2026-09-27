@@ -7,7 +7,7 @@
 
 #define CORNE_CONTROL_COMMAND 0x72
 #define CORNE_CONTROL_PROTOCOL_MAJOR 1
-#define CORNE_CONTROL_PROTOCOL_MINOR 0
+#define CORNE_CONTROL_PROTOCOL_MINOR 1
 
 enum corne_control_board_id {
     CORNE_BOARD_XTIPS_V4S_103C = 1,
@@ -21,6 +21,7 @@ enum corne_control_operation {
     CORNE_OP_SET_LIGHTING = 0x02,
     CORNE_OP_GET_STATUS = 0x03,
     CORNE_OP_HEARTBEAT = 0x04,
+    CORNE_OP_PREVIEW_LIGHTING = 0x05,
 };
 
 enum corne_control_status {

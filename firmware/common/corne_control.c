@@ -64,15 +64,16 @@ static void corne_config_write(void) {
     eeconfig_update_user(corne_config_value());
 }
 
-static void corne_set_owner(bool use_openrgb) {
-    if (openrgb_enabled == use_openrgb) {
-        return;
-    }
-
+static void corne_set_owner(bool use_openrgb, bool persist) {
+    bool changed = openrgb_enabled != use_openrgb;
     openrgb_enabled = use_openrgb;
-    corne_config_write();
-    owner_sync_pending = true;
-    if (!openrgb_enabled) {
+    if (persist) {
+        corne_config_write();
+    }
+    if (changed) {
+        owner_sync_pending = true;
+    }
+    if (changed && !openrgb_enabled) {
         rgb_matrix_reload_from_eeprom();
     }
 }
@@ -107,7 +108,7 @@ static uint8_t corne_effect_to_qmk(uint8_t effect) {
     }
 }
 
-static void corne_apply_lighting(const uint8_t *data) {
+static void corne_apply_lighting(const uint8_t *data, bool persist) {
     const bool    enabled = data[4] != 0;
     const uint8_t effect  = data[5];
     const uint8_t hue     = data[6];
@@ -115,13 +116,24 @@ static void corne_apply_lighting(const uint8_t *data) {
     const uint8_t val     = data[8] > CORNE_CONTROL_MAX_BRIGHTNESS ? CORNE_CONTROL_MAX_BRIGHTNESS : data[8];
     const uint8_t speed   = data[9];
 
-    rgb_matrix_sethsv(hue, sat, val);
-    rgb_matrix_set_speed(speed);
-    rgb_matrix_mode(corne_effect_to_qmk(effect));
-    if (enabled) {
-        rgb_matrix_enable();
+    if (persist) {
+        rgb_matrix_sethsv(hue, sat, val);
+        rgb_matrix_set_speed(speed);
+        rgb_matrix_mode(corne_effect_to_qmk(effect));
+        if (enabled) {
+            rgb_matrix_enable();
+        } else {
+            rgb_matrix_disable();
+        }
     } else {
-        rgb_matrix_disable();
+        rgb_matrix_sethsv_noeeprom(hue, sat, val);
+        rgb_matrix_set_speed_noeeprom(speed);
+        rgb_matrix_mode_noeeprom(corne_effect_to_qmk(effect));
+        if (enabled) {
+            rgb_matrix_enable_noeeprom();
+        } else {
+            rgb_matrix_disable_noeeprom();
+        }
     }
 }
 
@@ -327,15 +339,18 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
             corne_reply_lighting(data);
             break;
         case CORNE_OP_SET_LIGHTING:
+        case CORNE_OP_PREVIEW_LIGHTING: {
             if (data[3] > CORNE_OWNER_OPENRGB || data[4] > 1 || data[5] >= CORNE_EFFECT_COUNT) {
                 data[2] = CORNE_STATUS_BAD_VALUE;
                 break;
             }
-            corne_set_owner(data[3] == CORNE_OWNER_OPENRGB);
+            const bool persist = operation == CORNE_OP_SET_LIGHTING;
+            corne_set_owner(data[3] == CORNE_OWNER_OPENRGB, persist);
             if (!openrgb_enabled) {
-                corne_apply_lighting(data);
+                corne_apply_lighting(data, persist);
             }
             break;
+        }
         case CORNE_OP_GET_STATUS:
             memset(&data[3], 0, 29);
             corne_reply_status(data);
