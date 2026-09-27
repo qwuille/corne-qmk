@@ -25,6 +25,8 @@ webhid/
 
 All targets compile QMK Tap Dance, which enables Vial's dynamic Tap Dance implementation. XTIPS allocates eight entries to protect its flash and emulated-EEPROM budget; both RP2040 builds allocate sixteen.
 
+All targets use a 10 ms synthetic tap delay. This prevents the host from missing or reordering the very short press/release report that Vial generates when a Tap Dance ends on release or is interrupted by the next key.
+
 Acceptance testing must include tap, hold, double-tap, tap-hold, and interruption by another key. In the interruption case, QMK must finish the pending dance before processing the interrupting key so any layer change affects the new key correctly.
 
 ## Lighting ownership

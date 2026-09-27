@@ -1,7 +1,7 @@
 {
     "format":  "corne-control-firmware",
     "version":  1,
-    "generatedUtc":  "2026-09-27T07:39:45Z",
+    "generatedUtc":  "2026-09-27T08:06:28Z",
     "artifacts":  [
                       {
                           "id":  "xtips",
@@ -9,8 +9,8 @@
                           "name":  "XTIPS V4s / 103C",
                           "transport":  "dfu",
                           "file":  "xtips-v4s-103c-corne-control.bin",
-                          "size":  49008,
-                          "sha256":  "86740f4d45b3df6368e08570b49529db5a79490c4a4d2ce4cac2642d3bd4b73b"
+                          "size":  49060,
+                          "sha256":  "7140cedbe5ef9efa334f09b3282453baf0530859469f21a12d7d690f66a8c503"
                       },
                       {
                           "id":  "szrkbd",
@@ -19,7 +19,7 @@
                           "transport":  "uf2",
                           "file":  "szrkbd-corne-v4.1-corne-control.uf2",
                           "size":  133120,
-                          "sha256":  "dc80a443678f77b02f9bbab9fafafbe17093779ce32acc58ff225e15adbd561f"
+                          "sha256":  "25f922630f1828e4ee1faae4cdccc49fce63eae164231fa9b361f1c9993bba72"
                       },
                       {
                           "id":  "foostan",
@@ -28,7 +28,7 @@
                           "transport":  "uf2",
                           "file":  "foostan-corne-v4.1-corne-control.uf2",
                           "size":  133120,
-                          "sha256":  "f711082533b69fed7cbb8499482765752055ec951c29c0aeea1dc2b6df1fea9a"
+                          "sha256":  "f4eb595d72fa2d7d1208c816606bf3202a3e9a8be5b3b965d5f9a10bbc0b47f5"
                       }
                   ]
 }
