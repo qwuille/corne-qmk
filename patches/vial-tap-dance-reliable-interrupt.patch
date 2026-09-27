@@ -1,0 +1,46 @@
+diff --git a/quantum/vial.c b/quantum/vial.c
+index 42eb4c5e..cc36fccb 100644
+--- a/quantum/vial.c
++++ b/quantum/vial.c
+@@ -378,6 +378,10 @@ enum {
+ static uint8_t dance_state[VIAL_TAP_DANCE_ENTRIES];
+ static vial_tap_dance_entry_t td_entry;
+ 
++__attribute__((weak)) bool vial_tap_dance_reliable_interrupt_kb(void) {
++    return false;
++}
++
+ static uint8_t dance_step(tap_dance_state_t *state) {
+     if (state->count == 1) {
+         if (state->interrupted || !state->pressed) return SINGLE_TAP;
+@@ -413,8 +417,14 @@ static void on_dance_finished(tap_dance_state_t *state, void *user_data) {
+     dance_state[index] = dance_step(state);
+     switch (dance_state[index]) {
+         case SINGLE_TAP: {
+-            if (td_entry.on_tap)
+-                vial_keycode_down(td_entry.on_tap);
++            if (td_entry.on_tap) {
++                if (state->interrupted && vial_tap_dance_reliable_interrupt_kb()) {
++                    vial_keycode_tap(td_entry.on_tap);
++                    dance_state[index] = 0;
++                } else {
++                    vial_keycode_down(td_entry.on_tap);
++                }
++            }
+             break;
+         }
+         case SINGLE_HOLD: {
+@@ -452,7 +462,12 @@ static void on_dance_finished(tap_dance_state_t *state, void *user_data) {
+         case DOUBLE_SINGLE_TAP: {
+             if (td_entry.on_tap) {
+                 vial_keycode_tap(td_entry.on_tap);
+-                vial_keycode_down(td_entry.on_tap);
++                if (state->interrupted && vial_tap_dance_reliable_interrupt_kb()) {
++                    vial_keycode_tap(td_entry.on_tap);
++                    dance_state[index] = 0;
++                } else {
++                    vial_keycode_down(td_entry.on_tap);
++                }
+             }
+             break;
+         }

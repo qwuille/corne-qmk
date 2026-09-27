@@ -11,7 +11,7 @@ The targets share behavior, not hardware declarations. Never flash one board's a
 ## Implemented features
 
 - Vial dynamic keymaps.
-- Vial Tap Dance, including QMK's standard interrupted-dance processing.
+- Vial Tap Dance with a persistent WebHID reliable-typing mode for interrupted dances.
 - VialRGB/OpenRGB through the existing 32-byte Vial Raw HID interface.
 - Persistent Firmware/OpenRGB lighting ownership.
 - Direct OpenRGB color forwarding from the USB master to whichever physical half is secondary.

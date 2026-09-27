@@ -9,11 +9,15 @@ The persistent data includes:
 - Vial layers and key assignments;
 - macros, combos, Tap Dance entries, and encoder mappings;
 - saved QMK RGB Matrix settings;
-- the Corne Control Firmware/OpenRGB owner setting.
+- the Corne Control Firmware/OpenRGB owner setting;
+- the reliable Tap Dance typing-interrupt setting.
 
 WebHID lighting changes are first previewed in RAM. Click **Save lighting** to
 write the selected effect, hue, saturation, brightness, and speed to persistent
 storage. Vial configuration changes are written persistently by Vial itself.
+Click **Save typing behavior** to persist reliable Tap Dance interruption; this
+small Corne Control setting is also synchronized to the connected secondary
+half.
 
 ## Protected flash regions
 
@@ -41,7 +45,7 @@ not make storage indestructible.
 Use the documented XTIPS DFU alternate 2 command or copy the board-specific
 UF2 to `RPI-RP2`; do not add a mass-erase option. Keep a Vial `.vil` export as
 the portable recovery copy before an initial installation or major update.
-Corne Control's JSON export covers its own lighting/ownership settings, not
+Corne Control's JSON export covers its own lighting, ownership, and typing-behavior settings, not
 the Vial keymap database.
 
 ## Split-keyboard detail

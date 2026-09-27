@@ -28,6 +28,8 @@ Reply payload:
 | 11 | Vial dynamic layer count |
 | 12 | number of portable firmware effects |
 
+Capability bit 5 (`0x20`) reports support for the typing-behavior operations.
+
 ### `0x01` / `0x02` — Get/set lighting
 
 | Byte | Meaning |
@@ -42,8 +44,8 @@ Reply payload:
 | 10 | get-only suspend state |
 
 OpenRGB writes are accepted only while owner `1` is stored. Firmware RGB configuration remains in QMK EEPROM and is restored when ownership returns to firmware.
-Clients must use the effect count reported by `0x00`: XTIPS exposes effects
-`0` through `2`, while both RP2040 targets expose `0` through `4`.
+Clients must use the effect count reported by `0x00`. All maintained targets
+currently expose effects `0` through `4`.
 
 ### `0x05` — Preview lighting
 
@@ -59,6 +61,14 @@ Byte 3 is the highest active layer, byte 4 is the USB host LED bitmask, byte 5 r
 ### `0x04` — Configuration heartbeat
 
 WebHID sends a heartbeat while connected. VialRGB writes are paused until five seconds after the last Corne Control request so WebHID and OpenRGB cannot fight over the shared HID endpoint.
+
+### `0x06` / `0x07` — Get/set typing behavior
+
+Byte 3 enables reliable Tap Dance interruption. When enabled, an interrupted
+single tap is emitted as a complete press/release before the interrupting key is
+processed, including when the original Tap Dance key is still physically held.
+This avoids Vial's rolled-typing report ordering problem. Byte 4 in the get reply
+reports the compiled synthetic-tap delay in milliseconds and is read-only.
 
 ## Split RGB forwarding
 

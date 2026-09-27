@@ -13,6 +13,7 @@ $vendorRoot = Join-Path $projectRoot '.build\vendor'
 $distRoot = Join-Path $projectRoot 'dist'
 $lock = Get-Content -LiteralPath (Join-Path $projectRoot 'upstream.lock.json') -Raw | ConvertFrom-Json
 $vialPatch = Join-Path $projectRoot 'patches\vialrgb-policy-and-split-sync.patch'
+$tapDancePatch = Join-Path $projectRoot 'patches\vial-tap-dance-reliable-interrupt.patch'
 $commonRoot = Join-Path $projectRoot 'firmware\common'
 . (Join-Path $PSScriptRoot 'firmware-storage.ps1')
 
@@ -52,6 +53,15 @@ function Apply-VialPatch {
     if ($LASTEXITCODE -ne 0) { throw "The VialRGB policy patch does not apply cleanly to $QmkRoot" }
     git -c "safe.directory=$($QmkRoot -replace '\\','/')" -C $QmkRoot apply $vialPatch
     if ($LASTEXITCODE -ne 0) { throw "Failed to apply the VialRGB policy patch to $QmkRoot" }
+}
+
+function Apply-TapDancePatch {
+    param([string] $QmkRoot)
+    if (Select-String -LiteralPath (Join-Path $QmkRoot 'quantum\vial.c') -Pattern 'vial_tap_dance_reliable_interrupt_kb' -Quiet) { return }
+    git -c "safe.directory=$($QmkRoot -replace '\\','/')" -C $QmkRoot apply --check $tapDancePatch
+    if ($LASTEXITCODE -ne 0) { throw "The reliable Tap Dance patch does not apply cleanly to $QmkRoot" }
+    git -c "safe.directory=$($QmkRoot -replace '\\','/')" -C $QmkRoot apply $tapDancePatch
+    if ($LASTEXITCODE -ne 0) { throw "Failed to apply the reliable Tap Dance patch to $QmkRoot" }
 }
 
 function Install-KeymapOverlay {
@@ -100,6 +110,7 @@ function Build-Xtips {
     Assert-PinnedRepository -Path $qmkRoot -Expected $lock.vialQmk.commit
     Assert-PinnedRepository -Path $sourceRoot -Expected $lock.xtipsQmkKeyboard.commit
     Apply-VialPatch -QmkRoot $qmkRoot
+    Apply-TapDancePatch -QmkRoot $qmkRoot
 
     $keyboardDestination = Join-Path $qmkRoot 'keyboards\xtips\v4s'
     Copy-FreshDirectory -Source (Join-Path $sourceRoot 'v4s') -Destination $keyboardDestination -AllowedRoot (Join-Path $qmkRoot 'keyboards')
@@ -120,6 +131,7 @@ function Build-Rp2040Corne {
     Assert-PinnedRepository -Path $foostanRoot -Expected $lock.foostanKeyboardFirmware.commit
     Assert-PinnedRepository -Path $qmkRoot -Expected $lock.foostanKeyboardFirmware.vialQmkCommit
     Apply-VialPatch -QmkRoot $qmkRoot
+    Apply-TapDancePatch -QmkRoot $qmkRoot
 
     $keyboardDestination = Join-Path $qmkRoot 'keyboards\tmp\crkbd'
     Copy-FreshDirectory -Source (Join-Path $foostanRoot 'keyboards\crkbd\qmk\qmk_firmware') -Destination $keyboardDestination -AllowedRoot (Join-Path $qmkRoot 'keyboards')

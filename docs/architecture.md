@@ -12,6 +12,7 @@ firmware/
   foostan_corne_v4_1/     original foostan Vial identity and overlay
 patches/
   vialrgb-policy-and-split-sync.patch
+  vial-tap-dance-reliable-interrupt.patch
 webhid/
   index.html
   flasher.html
@@ -27,14 +28,17 @@ All targets compile QMK Tap Dance, which enables Vial's dynamic Tap Dance implem
 
 All targets use a 10 ms synthetic tap delay. This prevents the host from missing or reordering the very short press/release report that Vial generates when a Tap Dance ends on release or is interrupted by the next key.
 
+Corne Control also enables **Reliable typing interrupt** by default. Stock Vial may leave the generated single-tap key down until the physical Tap Dance key is released when another key interrupts it. During rolled typing, the following key can consequently be combined with or overtake that report. The maintained Vial patch completes the generated tap before processing the interrupting key. WebHID can persistently enable or disable this workaround, and the selected value is synchronized to the secondary half. This is related to the upstream Vial report [tap dance triggers press/release in wrong order](https://github.com/vial-kb/vial-qmk/issues/1023).
+
 Acceptance testing must include tap, hold, double-tap, tap-hold, and interruption by another key. In the interruption case, QMK must finish the pending dance before processing the interrupting key so any layer change affects the new key correctly.
 
 ## Lighting ownership
 
 XTIPS drives its A9 WS2812 line from STM32 TIM1 channel 2 with PWM and DMA.
 Software bit-banging was rejected after physical testing showed visible flicker
-on the APM32F103 clone. Its flash budget retains solid, breathing, and rainbow
-firmware effects; VialRGB/OpenRGB direct color remains available.
+on the APM32F103 clone. Mouse Keys are disabled on XTIPS to make room for solid,
+breathing, rainbow, hue-wave, and key-reactive firmware effects;
+VialRGB/OpenRGB direct color remains available.
 
 The firmware stores one owner bit in QMK's user EEPROM:
 

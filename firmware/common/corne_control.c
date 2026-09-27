@@ -37,6 +37,7 @@
 
 #define CORNE_CONFIG_MAGIC 0xC7u
 #define CORNE_CONFIG_OWNER_BIT 8u
+#define CORNE_CONFIG_STANDARD_TAP_DANCE_BIT 9u
 #define CORNE_CONFIGURATION_HOLD_MS 5000u
 #define CORNE_RGB_QUEUE_DEPTH 4u
 #define CORNE_RGB_PACKET_MAX_LEDS 9u
@@ -48,6 +49,7 @@ typedef struct {
 } corne_rgb_packet_t;
 
 static bool               openrgb_enabled;
+static bool               reliable_tap_dance_interrupt;
 static bool               owner_sync_pending;
 static uint32_t           configuration_timer;
 static corne_rgb_packet_t rgb_queue[CORNE_RGB_QUEUE_DEPTH];
@@ -60,7 +62,7 @@ extern HSV g_direct_mode_colors[RGB_MATRIX_LED_COUNT];
 #endif
 
 static uint32_t corne_config_value(void) {
-    return CORNE_CONFIG_MAGIC | ((uint32_t)openrgb_enabled << CORNE_CONFIG_OWNER_BIT);
+    return CORNE_CONFIG_MAGIC | ((uint32_t)openrgb_enabled << CORNE_CONFIG_OWNER_BIT) | ((uint32_t)!reliable_tap_dance_interrupt << CORNE_CONFIG_STANDARD_TAP_DANCE_BIT);
 }
 
 static void corne_config_write(void) {
@@ -150,7 +152,12 @@ static void corne_apply_lighting(const uint8_t *data, bool persist) {
 
 void eeconfig_init_user(void) {
     openrgb_enabled = false;
+    reliable_tap_dance_interrupt = true;
     corne_config_write();
+}
+
+bool vial_tap_dance_reliable_interrupt_kb(void) {
+    return reliable_tap_dance_interrupt;
 }
 
 static void corne_rgb_slave_handler(uint8_t in_buflen, const void *in_data, uint8_t out_buflen, void *out_data) {
@@ -189,9 +196,12 @@ static void corne_owner_slave_handler(uint8_t in_buflen, const void *in_data, ui
         return;
     }
 
-    bool owner = (*(const uint8_t *)in_data) != 0;
-    if (openrgb_enabled != owner) {
+    const uint8_t flags = *(const uint8_t *)in_data;
+    bool owner = (flags & 1u) != 0;
+    bool reliable_interrupt = (flags & 2u) != 0;
+    if (openrgb_enabled != owner || reliable_tap_dance_interrupt != reliable_interrupt) {
         openrgb_enabled = owner;
+        reliable_tap_dance_interrupt = reliable_interrupt;
         corne_config_write();
     }
 }
@@ -202,6 +212,7 @@ void keyboard_post_init_user(void) {
         eeconfig_init_user();
     } else {
         openrgb_enabled = ((stored >> CORNE_CONFIG_OWNER_BIT) & 1u) != 0;
+        reliable_tap_dance_interrupt = ((stored >> CORNE_CONFIG_STANDARD_TAP_DANCE_BIT) & 1u) == 0;
     }
     transaction_register_rpc(CORNE_RGB_SYNC, corne_rgb_slave_handler);
     transaction_register_rpc(CORNE_OWNER_SYNC, corne_owner_slave_handler);
@@ -262,8 +273,8 @@ void housekeeping_task_user(void) {
     }
 
     if (owner_sync_pending) {
-        uint8_t owner = openrgb_enabled;
-        if (transaction_rpc_send(CORNE_OWNER_SYNC, sizeof(owner), &owner)) {
+        uint8_t flags = (openrgb_enabled ? 1u : 0u) | (reliable_tap_dance_interrupt ? 2u : 0u);
+        if (transaction_rpc_send(CORNE_OWNER_SYNC, sizeof(flags), &flags)) {
             owner_sync_pending = false;
         }
         return;
@@ -297,7 +308,7 @@ static void corne_reply_info(uint8_t *data) {
     data[3]  = CORNE_CONTROL_PROTOCOL_MAJOR;
     data[4]  = CORNE_CONTROL_PROTOCOL_MINOR;
     data[5]  = CORNE_CONTROL_BOARD_ID;
-    data[6]  = 0x1F; // RGB Matrix, OpenRGB, split sync, tap dance, host status.
+    data[6]  = 0x3F; // RGB Matrix, OpenRGB, split sync, tap dance, host status, behavior control.
     data[7]  = CORNE_CONTROL_LED_COUNT & 0xFF;
     data[8]  = CORNE_CONTROL_LED_COUNT >> 8;
     data[9]  = CORNE_CONTROL_LEFT_LED_COUNT;
@@ -323,6 +334,11 @@ static void corne_reply_status(uint8_t *data) {
     data[4] = leds.raw;
     data[5] = is_keyboard_master();
     data[6] = rgb_matrix_get_suspend_state();
+}
+
+static void corne_reply_behavior(uint8_t *data) {
+    data[3] = reliable_tap_dance_interrupt;
+    data[4] = TAP_CODE_DELAY;
 }
 
 void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
@@ -367,6 +383,19 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
             corne_reply_status(data);
             break;
         case CORNE_OP_HEARTBEAT:
+            break;
+        case CORNE_OP_GET_BEHAVIOR:
+            memset(&data[3], 0, 29);
+            corne_reply_behavior(data);
+            break;
+        case CORNE_OP_SET_BEHAVIOR:
+            if (data[3] > 1) {
+                data[2] = CORNE_STATUS_BAD_VALUE;
+                break;
+            }
+            reliable_tap_dance_interrupt = data[3] != 0;
+            corne_config_write();
+            owner_sync_pending = true;
             break;
         default:
             data[2] = CORNE_STATUS_BAD_OPERATION;

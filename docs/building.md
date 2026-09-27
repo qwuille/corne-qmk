@@ -50,8 +50,8 @@ The source checkouts are disposable build inputs. Tracked source lives in `firmw
 
 | Target | Upstream QMK target | Result |
 | --- | --- | --- |
-| XTIPS | `xtips/v4s/103c:corne_control` | `.bin`, 49,060 bytes (49,044-byte QMK payload) |
-| SZRKBD | `tmp/crkbd/rev4_1/standard:corne_control_szrkbd` | `.uf2`, 133,120 bytes |
-| foostan v4.1 standard | `tmp/crkbd/rev4_1/standard:corne_control_foostan` | `.uf2`, 133,120 bytes |
+| XTIPS | `xtips/v4s/103c:corne_control` | `.bin`, 48,136 bytes (48,120-byte QMK payload) |
+| SZRKBD | `tmp/crkbd/rev4_1/standard:corne_control_szrkbd` | `.uf2`, 133,632 bytes |
+| foostan v4.1 standard | `tmp/crkbd/rev4_1/standard:corne_control_foostan` | `.uf2`, 133,632 bytes |
 
 Compile success does not authorize flashing a target whose physical wiring has not been verified. In particular, the SZRKBD artifact remains provisional.
