@@ -1,5 +1,9 @@
 # Reproducible builds
 
+This page covers compiling firmware from source. If you only want to install
+the ready-made files, follow [Initial flashing](flashing.md), which includes
+copy-paste commands for Windows and Linux.
+
 ## Requirements
 
 - Windows PowerShell
