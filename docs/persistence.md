@@ -2,7 +2,7 @@
 
 Corne Control keeps configuration outside the firmware image. A normal update
 with the documented DFU or UF2 procedure therefore preserves settings when the
-same board target and Vial identity are used.
+same board target and compatible storage schema are used.
 
 The persistent data includes:
 
@@ -34,12 +34,26 @@ region is rejected.
 These checks protect settings from this project's release artifacts. They do
 not make storage indestructible.
 
+## Stable Vial storage schema
+
+Stock Vial generates a random build ID during each clean compilation and uses
+its low 24 bits as the EEPROM-validity marker. That normally resets the dynamic
+keymap after installing a newly compiled image even when the EEPROM flash pages
+were preserved.
+
+This project pins one build ID per target. Compatible releases retain that ID,
+so normal reflashes preserve Vial layers, macros, combos, and Tap Dance entries.
+The build IDs are intentionally changed only when an EEPROM-layout change is
+incompatible and retaining the old data would be unsafe. The first transition
+from factory firmware or an older build with a different ID can still reset the
+layout; export a Vial `.vil` file before that transition.
+
 ## Operations that can erase settings
 
 - a full-chip or mass erase;
 - an EEPROM-clear/Bootmagic reset;
 - flashing an image that deliberately covers the entire flash device;
-- changing to firmware with an incompatible Vial UID or EEPROM layout;
+- changing to firmware with an incompatible Vial UID, build ID, or EEPROM layout;
 - replacing a controller.
 
 Use the documented XTIPS DFU alternate 2 command or copy the board-specific

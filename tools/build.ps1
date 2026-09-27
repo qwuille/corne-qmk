@@ -14,8 +14,18 @@ $distRoot = Join-Path $projectRoot 'dist'
 $lock = Get-Content -LiteralPath (Join-Path $projectRoot 'upstream.lock.json') -Raw | ConvertFrom-Json
 $vialPatch = Join-Path $projectRoot 'patches\vialrgb-policy-and-split-sync.patch'
 $tapDancePatch = Join-Path $projectRoot 'patches\vial-tap-dance-reliable-interrupt.patch'
+$stableBuildIdPatch = Join-Path $projectRoot 'patches\vial-stable-build-id.patch'
 $commonRoot = Join-Path $projectRoot 'firmware\common'
 . (Join-Path $PSScriptRoot 'firmware-storage.ps1')
+
+# Vial stores the low 24 bits of BUILD_ID as its EEPROM schema marker. Keep
+# these stable across compatible releases; change one only when that target's
+# Vial EEPROM layout becomes intentionally incompatible.
+$vialBuildIds = @{
+    xtips   = '0x009E59BD'
+    szrkbd  = '0x009F2180'
+    foostan = '0x0012F400'
+}
 
 function Assert-PinnedRepository {
     param([string] $Path, [string] $Expected)
@@ -64,6 +74,15 @@ function Apply-TapDancePatch {
     if ($LASTEXITCODE -ne 0) { throw "Failed to apply the reliable Tap Dance patch to $QmkRoot" }
 }
 
+function Apply-StableBuildIdPatch {
+    param([string] $QmkRoot)
+    if (Select-String -LiteralPath (Join-Path $QmkRoot 'util\build_id.py') -Pattern 'VIAL_BUILD_ID' -Quiet) { return }
+    git -c "safe.directory=$($QmkRoot -replace '\\','/')" -C $QmkRoot apply --check $stableBuildIdPatch
+    if ($LASTEXITCODE -ne 0) { throw "The stable Vial build-ID patch does not apply cleanly to $QmkRoot" }
+    git -c "safe.directory=$($QmkRoot -replace '\\','/')" -C $QmkRoot apply $stableBuildIdPatch
+    if ($LASTEXITCODE -ne 0) { throw "Failed to apply the stable Vial build-ID patch to $QmkRoot" }
+}
+
 function Install-KeymapOverlay {
     param([string] $BaseKeymap, [string] $Overlay, [string] $Destination, [string] $AllowedRoot)
     Copy-FreshDirectory -Source $BaseKeymap -Destination $Destination -AllowedRoot $AllowedRoot
@@ -72,18 +91,21 @@ function Install-KeymapOverlay {
 }
 
 function Invoke-QmkCompile {
-    param([string] $QmkRoot, [string] $Keyboard, [string] $Keymap)
+    param([string] $QmkRoot, [string] $Keyboard, [string] $Keymap, [string] $VialBuildId)
     $qmk = 'C:\QMK_MSYS\mingw64\bin\qmk.exe'
     if (-not (Test-Path -LiteralPath $qmk)) { throw "QMK executable not found at $qmk" }
+    $previousBuildId = $env:VIAL_BUILD_ID
     Push-Location $QmkRoot
     try {
         $env:MSYSTEM = 'MINGW64'
         $env:CHERE_INVOKING = '1'
         $env:SHELL = 'C:\QMK_MSYS\usr\bin\bash.exe'
         $env:PATH = 'C:\QMK_MSYS\mingw64\bin;C:\QMK_MSYS\usr\bin;' + $env:PATH
+        $env:VIAL_BUILD_ID = $VialBuildId
         & $qmk compile -kb $Keyboard -km $Keymap
         if ($LASTEXITCODE -ne 0) { throw "QMK build failed for ${Keyboard}:$Keymap" }
     } finally {
+        $env:VIAL_BUILD_ID = $previousBuildId
         Pop-Location
     }
 }
@@ -111,12 +133,13 @@ function Build-Xtips {
     Assert-PinnedRepository -Path $sourceRoot -Expected $lock.xtipsQmkKeyboard.commit
     Apply-VialPatch -QmkRoot $qmkRoot
     Apply-TapDancePatch -QmkRoot $qmkRoot
+    Apply-StableBuildIdPatch -QmkRoot $qmkRoot
 
     $keyboardDestination = Join-Path $qmkRoot 'keyboards\xtips\v4s'
     Copy-FreshDirectory -Source (Join-Path $sourceRoot 'v4s') -Destination $keyboardDestination -AllowedRoot (Join-Path $qmkRoot 'keyboards')
     Install-KeymapOverlay -BaseKeymap (Join-Path $sourceRoot 'v4s\keymaps\vial') -Overlay (Join-Path $projectRoot 'firmware\xtips_v4s_103c') -Destination (Join-Path $keyboardDestination 'keymaps\corne_control') -AllowedRoot (Join-Path $qmkRoot 'keyboards')
 
-    Invoke-QmkCompile -QmkRoot $qmkRoot -Keyboard 'xtips/v4s/103c' -Keymap 'corne_control'
+    Invoke-QmkCompile -QmkRoot $qmkRoot -Keyboard 'xtips/v4s/103c' -Keymap 'corne_control' -VialBuildId $vialBuildIds.xtips
     Copy-NewestArtifact -QmkRoot $qmkRoot -Pattern '*xtips*v4s*103c*corne_control*.bin' -DestinationName 'xtips-v4s-103c-corne-control.bin' -StorageGuard 'xtips-bin'
 }
 
@@ -124,7 +147,8 @@ function Build-Rp2040Corne {
     param(
         [string] $OverlayName,
         [string] $KeymapName,
-        [string] $ArtifactName
+        [string] $ArtifactName,
+        [string] $VialBuildId
     )
     $foostanRoot = Join-Path $vendorRoot 'foostan-kbd-firmware'
     $qmkRoot = Join-Path $foostanRoot 'src\vial-kb\vial-qmk'
@@ -132,6 +156,7 @@ function Build-Rp2040Corne {
     Assert-PinnedRepository -Path $qmkRoot -Expected $lock.foostanKeyboardFirmware.vialQmkCommit
     Apply-VialPatch -QmkRoot $qmkRoot
     Apply-TapDancePatch -QmkRoot $qmkRoot
+    Apply-StableBuildIdPatch -QmkRoot $qmkRoot
 
     $keyboardDestination = Join-Path $qmkRoot 'keyboards\tmp\crkbd'
     Copy-FreshDirectory -Source (Join-Path $foostanRoot 'keyboards\crkbd\qmk\qmk_firmware') -Destination $keyboardDestination -AllowedRoot (Join-Path $qmkRoot 'keyboards')
@@ -139,16 +164,16 @@ function Build-Rp2040Corne {
     Copy-FreshDirectory -Source (Join-Path $foostanRoot 'keyboards\crkbd\vial-kb\vial-qmk\keymaps') -Destination $keymapsDestination -AllowedRoot (Join-Path $qmkRoot 'keyboards')
     Install-KeymapOverlay -BaseKeymap (Join-Path $keymapsDestination 'vial') -Overlay (Join-Path $projectRoot "firmware\$OverlayName") -Destination (Join-Path $keymapsDestination $KeymapName) -AllowedRoot (Join-Path $qmkRoot 'keyboards')
 
-    Invoke-QmkCompile -QmkRoot $qmkRoot -Keyboard 'tmp/crkbd/rev4_1/standard' -Keymap $KeymapName
+    Invoke-QmkCompile -QmkRoot $qmkRoot -Keyboard 'tmp/crkbd/rev4_1/standard' -Keymap $KeymapName -VialBuildId $VialBuildId
     Copy-NewestArtifact -QmkRoot $qmkRoot -Pattern "*tmp*crkbd*rev4_1*standard*$KeymapName*.uf2" -DestinationName $ArtifactName -StorageGuard 'rp2040-uf2'
 }
 
 function Build-Szrkbd {
-    Build-Rp2040Corne -OverlayName 'szrkbd_corne_v4_1' -KeymapName 'corne_control_szrkbd' -ArtifactName 'szrkbd-corne-v4.1-corne-control.uf2'
+    Build-Rp2040Corne -OverlayName 'szrkbd_corne_v4_1' -KeymapName 'corne_control_szrkbd' -ArtifactName 'szrkbd-corne-v4.1-corne-control.uf2' -VialBuildId $vialBuildIds.szrkbd
 }
 
 function Build-Foostan {
-    Build-Rp2040Corne -OverlayName 'foostan_corne_v4_1' -KeymapName 'corne_control_foostan' -ArtifactName 'foostan-corne-v4.1-corne-control.uf2'
+    Build-Rp2040Corne -OverlayName 'foostan_corne_v4_1' -KeymapName 'corne_control_foostan' -ArtifactName 'foostan-corne-v4.1-corne-control.uf2' -VialBuildId $vialBuildIds.foostan
 }
 
 if ($Target -in @('all', 'xtips')) { Build-Xtips }

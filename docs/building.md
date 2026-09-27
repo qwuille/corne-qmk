@@ -29,10 +29,16 @@ The build script:
 
 1. verifies every pinned commit;
 2. applies the VialRGB ownership/direct-update hook if absent;
-3. stages the manufacturer hardware definition and this repository's keymap overlay;
-4. compiles with QMK MSYS;
-5. rejects any image whose programmed range could overlap emulated EEPROM;
-6. copies board-named artifacts to ignored `dist/`.
+3. applies the stable Vial EEPROM build-ID patch;
+4. stages the manufacturer hardware definition and this repository's keymap overlay;
+5. compiles each target with its pinned EEPROM schema ID;
+6. rejects any image whose programmed range could overlap emulated EEPROM;
+7. copies board-named artifacts to ignored `dist/`.
+
+The IDs in `tools/build.ps1` are storage-schema versions, not release numbers.
+Do not change one merely because firmware code changed. Change only the affected
+target's ID when its Vial EEPROM layout becomes incompatible, and document the
+resulting one-time reset.
 
 After all builds succeed, update the firmware and manifest served by GitHub Pages:
 

@@ -1,0 +1,31 @@
+diff --git a/util/build_id.py b/util/build_id.py
+index 77e56b59..79ea2a8a 100644
+--- a/util/build_id.py
++++ b/util/build_id.py
+@@ -1,9 +1,21 @@
++import os
+ import random
+-
+-
++
++
+ def main():
+-    print("#define BUILD_ID ((uint32_t)0x{:08X})".format(random.randrange(0, 2 ** 24 - 1)))
+-
+-
++    configured = os.environ.get("VIAL_BUILD_ID")
++    if configured is None:
++        build_id = random.randrange(0, 2 ** 24 - 1)
++    else:
++        try:
++            build_id = int(configured, 0)
++        except ValueError as error:
++            raise SystemExit("VIAL_BUILD_ID must be an integer such as 0x123456") from error
++        if not 0 <= build_id < 2 ** 24:
++            raise SystemExit("VIAL_BUILD_ID must fit in 24 bits")
++
++    print("#define BUILD_ID ((uint32_t)0x{:08X})".format(build_id))
++
++
+ if __name__ == "__main__":
+     main()
